@@ -16,10 +16,11 @@ class FS {
     byte free_space_list[FREE_LIST_SIZE];
     // 32 pointers to file control blocks
     // each pointer = 2 bytes
-    byte file_directory[FILES_IN_DIRECTORY * 2];
+    int file_directory[FILES_IN_DIRECTORY];
     Microchip_24LC256 eeprom;
     int num_free_blocks;
     FCB *fcb;
+    int num_files = 0;
 
 //  public:
     FS();
@@ -28,7 +29,7 @@ class FS {
     // bring free space list and file directory into memory
     void initialize();
     // create name file
-    void create();
+    void create_file(char *file_name);
     // open a named file
     void open_file();
     // write bytes to a file    
@@ -44,9 +45,13 @@ class FS {
     // list all files in file system
     // name and page-aligned size
     void list();
-    int find_first_free_block_offset(byte n);
+    int find_first_free_block();
     int find_num_free_blocks();
     // call this function with find_free_block_offset?
     void flip_bit(int block_index, int offset);
     void commit_to_EEPROM();
+    bool find_file_name(char *file_name);
+    void print_free_list();
+    void print_file_directory();
+    int find_empty_directory_slot();
 };
