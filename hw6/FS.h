@@ -11,7 +11,7 @@ class FS {
   public:
     // 1 bit for each block of EEPROM memory
     // 512 blocks of memory
-    // 64 bytes per block of memory, 8 bits per byte 
+    // 64 bytes per block of memory, 8 bits per byte
     // 512 bits per block of memory = 1 bit per block
     byte free_space_list[FREE_LIST_SIZE];
     // 32 pointers to file control blocks
@@ -20,7 +20,7 @@ class FS {
     Microchip_24LC256 eeprom;
     int num_free_blocks;
     FCB *fcb;
-    int num_files = 0;
+    int num_files;
 
 //  public:
     FS();
@@ -31,8 +31,8 @@ class FS {
     // create name file
     void create_file(char *file_name);
     // open a named file
-    void open_file();
-    // write bytes to a file    
+    void open_file(char *file_name);
+    // write bytes to a file
     void write_file();
     // read bytes from a file
     void read_file();
@@ -41,10 +41,10 @@ class FS {
     // close a file
     void close_file();
     // delete a named file
-    void delete_file();
+    void delete_file(char *file_name);
     // list all files in file system
     // name and page-aligned size
-    void list();
+    void list_files();
     int find_first_free_block();
     int find_num_free_blocks();
     // call this function with find_free_block_offset?

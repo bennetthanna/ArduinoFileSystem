@@ -79,3 +79,4 @@ void Microchip_24LC256::wait()
         Wire.beginTransmission(I2C_ADDR);
     } while (Wire.endTransmission() != 0);
 }
+

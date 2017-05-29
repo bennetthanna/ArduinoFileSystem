@@ -19,3 +19,4 @@ class Microchip_24LC256
     private:
         void wait();
 };
+
