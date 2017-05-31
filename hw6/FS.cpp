@@ -106,17 +106,17 @@ void FS::create_file(char *file_name) {
   Serial.println("here before num free blocks");
   if (num_free_blocks < 1) {
     Serial.println("ERROR: No free blocks available");
-    return -1;
+    return;
   }
   Serial.println("here before num files");
   if (num_files > 31) {
     Serial.println("ERROR: No more files can be added");
-    return -1;
+    return;
   }
   Serial.println("here before find file");
   if (find_file_name(file_name)) {
     Serial.println("ERROR: File already exists");
-    return -1;
+    return;
   }
   Serial.println("here after");
   // find first free block
@@ -162,7 +162,7 @@ void FS::list_files() {
       Serial.println(" bytes");
     }
   }
-  return true;
+  return;
 }
 
 void FS::delete_file(char *file_name) {
@@ -176,6 +176,14 @@ void FS::delete_file(char *file_name) {
         int block_offset = block_number % 8;
         flip_bit(block_index, block_offset);
         file_directory[i] = -1;
+        num_files--;
+        fcb->file_name[0] = 0;
+        Serial.print("Reset file name = ");
+        Serial.println(fcb->file_name);
+        fcb->file_offset = 0;
+        for (int i = 0; i < 16; ++i) {
+          fcb->data_blocks[i] = -1;
+        }
         commit_to_EEPROM();
         return true;
       }
@@ -193,6 +201,27 @@ void FS::open_file(char *file_name) {
       eeprom.read_page(file_directory[i], (byte*)fcb);
       if (strcmp(fcb->file_name, file_name) == 0) {
         Serial.println("File found");
+        return;
+      }
+    }
+  }
+  Serial.print("ERROR: File ");
+  Serial.print(file_name);
+  Serial.println(" not found");
+  return;
+}
+
+void FS::close_file() {
+  commit_to_EEPROM();
+}
+
+void FS::seek_file(char *file_name) {
+  for (int i = 0; i < FILES_IN_DIRECTORY; ++i) {
+    if (file_directory[i] != -1) {
+      eeprom.read_page(file_directory[i], (byte*)fcb);
+      if (strcmp(fcb->file_name, file_name) == 0) {
+        Serial.println("File found");
+        fcb->file_offset = 0;
         return true;
       }
     }
@@ -201,10 +230,6 @@ void FS::open_file(char *file_name) {
   Serial.print(file_name);
   Serial.println(" not found");
   return false;
-}
-
-void FS::close_file() {
-  commit_to_EEPROM();
 }
 
 // create file
@@ -233,8 +258,39 @@ void FS::close_file() {
   // QUESTION: can you assume the file is currently open?
     // as in the file is the current fcb represented
     // so you can just write_page(block, (byte*)fcb)
+      // how do you know what the block number to write to is?
+      // make block number a fcb member variable
     // or do you have to pass it a file name and find that fcb then write it?
 
 // open file
   // bring in the FCB from EEPROM
-  // QUESTION: what do I do?
+  // QUESTION: what else do I do?
+
+// seek file
+  // set fcb file offset to 0
+
+// write file
+  // takes fcb, byte *buffer, int counter
+  // example: fs.write_file(fcb, "hello", 5)
+  // grab a data block based on offset
+    // if offset between 0 and 64 grab pointer 0
+    // if offset between 64 and 128 grab pointer 1
+  // if pointer is -1 then grab free block
+  // update data block pointer
+    // if offset is 67, get free block 17, then data_block[1] = 17
+  // bring in data block into buffer
+  // modify buffer
+    // example: buffer = [hello..........]
+    // pointer stuff
+  // update offset
+    // offset + counter
+  // write to EEPROM
+    // buffer to block 17 (data blocks)
+    // free list
+    // fcb
+  // easy case: writing within one disk block (<= 64 bytes)
+  // hard case: overflows into another disk block
+    // if ((float)(offset + counter) / (float)64) > 1 then overflows
+
+// read file
+  // read in from offset not from beginning of file

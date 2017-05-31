@@ -35,7 +35,7 @@ void setup()
   file_system.print_free_list();
   file_system.print_file_directory();
   file_system.list_files();
-  file_system.delete_file("cool.txt");
+  file_system.delete_file("cool_beans.txt");
   file_system.delete_file("hello_world.txt");
   file_system.print_free_list();
   file_system.print_file_directory();

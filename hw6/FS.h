@@ -28,7 +28,7 @@ class FS {
     void reformat();
     // bring free space list and file directory into memory
     void initialize();
-    // create name file
+    // create named file
     void create_file(char *file_name);
     // open a named file
     void open_file(char *file_name);
@@ -37,7 +37,7 @@ class FS {
     // read bytes from a file
     void read_file();
     // seek to beginning of a file
-    void seek_file();
+    void seek_file(char *file_name);
     // close a file
     void close_file();
     // delete a named file
