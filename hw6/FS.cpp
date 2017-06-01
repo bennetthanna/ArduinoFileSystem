@@ -242,7 +242,8 @@ void FS::seek_file(char *file_name) {
 }
 
 void FS::write_file(char *file_name, byte* input_buffer, int count) {
-  byte* buffer;
+  byte buffer[64];
+  buffer[0] = 0;
   if (count > 1024) {
     Serial.println("ERROR: Files can be no larger than 1024 bytes");
     return;
@@ -257,19 +258,35 @@ void FS::write_file(char *file_name, byte* input_buffer, int count) {
           return;
         }
         int data_block_num = fcb->file_offset / 64;
+        Serial.print("data block num = ");
+        Serial.println(data_block_num);
         if (fcb->data_blocks[data_block_num] != -1) {
-          eeprom.read_page(fcb->data_blocks[data_block_num], buffer);
+          Serial.println("fcb->data_blocks != -1");
+          Serial.println(fcb->data_blocks[data_block_num]);
+          eeprom.read_page(fcb->data_blocks[data_block_num], (byte*)buffer);
         } else {
           int block_num = find_first_free_block();
+          Serial.print("block num = ");
+          Serial.println(block_num);
           fcb->data_blocks[data_block_num] = block_num;
-          eeprom.read_page(fcb->data_blocks[data_block_num], buffer);
           int index = find_empty_directory_slot();
+          Serial.print("index = ");
+          Serial.println(index);
           file_directory[index] = block_num;
           flip_bit((block_num / 8) , (block_num % 8));
+          Serial.println("here");
         }
-        strcat((char*)buffer, (char*)input_buffer);
+        strncat((char*)buffer, (char*)input_buffer, count);
+        Serial.println("after strncat");
+        Serial.println(fcb->file_offset);
         fcb->file_offset += count;
-        eeprom.write_page(fcb->data_blocks[data_block_num], buffer);
+        Serial.print("file offset = ");
+        Serial.println(fcb->file_offset);
+        Serial.print("buffer = ");
+        Serial.println((char*)buffer);
+        Serial.print("input buffer = ");
+        Serial.println((char*)input_buffer);
+        eeprom.write_page(fcb->data_blocks[data_block_num], (byte*)buffer);
         eeprom.write_page(file_directory[i], (byte*)fcb);
         commit_to_EEPROM();
       }
