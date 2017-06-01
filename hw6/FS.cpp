@@ -8,6 +8,7 @@
 FS::FS():eeprom() {
   Serial.println("Inside constructor!");
   num_files = 0;
+  return;
 }
 
 void FS::print_free_list() {
@@ -17,6 +18,7 @@ void FS::print_free_list() {
     Serial.print("] = ");
     Serial.println(free_space_list[i], BIN);
   }
+  return;
 }
 
 void FS::print_file_directory() {
@@ -26,6 +28,7 @@ void FS::print_file_directory() {
     Serial.print("] = ");
     Serial.println(file_directory[i]);
   }
+  return;
 }
 
 void FS::reformat() {
@@ -40,6 +43,7 @@ void FS::reformat() {
     // initialize directory pointers to NULL
     file_directory[i] = -1;
   }
+  return;
 }
 
 void FS::initialize() {
@@ -48,6 +52,7 @@ void FS::initialize() {
   // read block 1 from EEPROM to fill free space list buffer
   eeprom.read_page(1, free_space_list);
   num_free_blocks = find_num_free_blocks();
+  return;
 }
 
 int FS::find_first_free_block() {
@@ -64,7 +69,8 @@ int FS::find_first_free_block() {
       }
     }
   }
-
+  // should error check for -1 return value - signals no free blocks
+  return -1;
 }
 
 int FS::find_num_free_blocks() {
@@ -86,11 +92,13 @@ int FS::find_num_free_blocks() {
 void FS::flip_bit(int block_index, int offset) {
   int x = 128;
   free_space_list[block_index] = ((x >> offset) ^ free_space_list[block_index]);
+  return;
 }
 
 void FS::commit_to_EEPROM() {
   eeprom.write_page(0, (byte*)file_directory);
   eeprom.write_page(1, free_space_list);
+  return;
 }
 
 int FS::find_empty_directory_slot() {
@@ -136,6 +144,7 @@ void FS::create_file(char *file_name) {
   eeprom.write_page(block_number, (byte*)fcb);
   commit_to_EEPROM();
   num_files++;
+  return;
 }
 
 bool FS::find_file_name(char *file_name) {
@@ -185,14 +194,14 @@ void FS::delete_file(char *file_name) {
           fcb->data_blocks[i] = -1;
         }
         commit_to_EEPROM();
-        return true;
+        return;
       }
     }
   }
   Serial.print("ERROR: File ");
   Serial.print(file_name);
   Serial.println(" not found");
-  return false;
+  return;
 }
 
 void FS::open_file(char *file_name) {
@@ -222,14 +231,50 @@ void FS::seek_file(char *file_name) {
       if (strcmp(fcb->file_name, file_name) == 0) {
         Serial.println("File found");
         fcb->file_offset = 0;
-        return true;
+        return;
       }
     }
   }
   Serial.print("ERROR: File ");
   Serial.print(file_name);
   Serial.println(" not found");
-  return false;
+  return;
+}
+
+void FS::write_file(char *file_name, byte* input_buffer, int count) {
+  byte* buffer;
+  if (count > 1024) {
+    Serial.println("ERROR: Files can be no larger than 1024 bytes");
+    return;
+  }
+  for (int i = 0; i < FILES_IN_DIRECTORY; ++i) {
+    if (file_directory[i] != -1) {
+      eeprom.read_page(file_directory[i], (byte*)fcb);
+      if (strcmp(fcb->file_name, file_name) == 0) {
+        Serial.println("File found");
+        if ((fcb->file_offset + count) > 1024) {
+          Serial.println("ERROR: Files can be no larger than 1024 bytes");
+          return;
+        }
+        int data_block_num = fcb->file_offset / 64;
+        if (fcb->data_blocks[data_block_num] != -1) {
+          eeprom.read_page(fcb->data_blocks[data_block_num], buffer);
+        } else {
+          int block_num = find_first_free_block();
+          fcb->data_blocks[data_block_num] = block_num;
+          eeprom.read_page(fcb->data_blocks[data_block_num], buffer);
+          int index = find_empty_directory_slot();
+          file_directory[index] = block_num;
+          flip_bit((block_num / 8) , (block_num % 8));
+        }
+        strcat((char*)buffer, (char*)input_buffer);
+        fcb->file_offset += count;
+        eeprom.write_page(fcb->data_blocks[data_block_num], buffer);
+        eeprom.write_page(file_directory[i], (byte*)fcb);
+        commit_to_EEPROM();
+      }
+    }
+  }
 }
 
 // create file
@@ -255,6 +300,7 @@ void FS::seek_file(char *file_name) {
 
 // close file
   // write to EEPROM
+  // set existing fcb to NULL
   // QUESTION: can you assume the file is currently open?
     // as in the file is the current fcb represented
     // so you can just write_page(block, (byte*)fcb)
@@ -294,3 +340,6 @@ void FS::seek_file(char *file_name) {
 
 // read file
   // read in from offset not from beginning of file
+  // pass it the number of bytes you want to read
+
+// make helper function to bring in fcb based on file name

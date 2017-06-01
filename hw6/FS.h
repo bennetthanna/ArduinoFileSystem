@@ -33,7 +33,7 @@ class FS {
     // open a named file
     void open_file(char *file_name);
     // write bytes to a file
-    void write_file();
+    void write_file(char *file_name, byte* input_buffer, int count);
     // read bytes from a file
     void read_file();
     // seek to beginning of a file
