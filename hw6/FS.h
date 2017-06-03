@@ -50,7 +50,7 @@ class FS {
     // call this function with find_free_block_offset?
     void flip_bit(int block_index, int offset);
     void commit_to_EEPROM();
-    bool find_file_name(char *file_name);
+    bool load_in_fcb(char *file_name);
     void print_free_list();
     void print_file_directory();
     int find_empty_directory_slot();
