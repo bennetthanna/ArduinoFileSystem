@@ -294,6 +294,31 @@ void FS::write_file(char *file_name, byte* input_buffer, int count) {
   }
 }
 
+void FS::read_file(char *file_name) {
+  byte heres_another_buffer[60];
+  heres_another_buffer[0] = 0;
+  for (int i = 0; i < FILES_IN_DIRECTORY; ++i) {
+    if (file_directory[i] != -1) {
+      eeprom.read_page(file_directory[i], (byte*)fcb);
+      if (strcmp(fcb->file_name, file_name) == 0) {
+        Serial.println("File found");
+        for (int i = 0; i < 16; ++i) {
+          if (fcb->data_blocks[i] != -1) {
+            Serial.println("data block != -1");
+            eeprom.read_page(fcb->data_blocks[i], (byte*)heres_another_buffer);
+            Serial.println((char*)heres_another_buffer);
+          }
+        }
+        return;
+      }
+    }
+  }
+  Serial.print("ERROR: File ");
+  Serial.print(file_name);
+  Serial.println(" not found");
+  return;
+}
+
 // create file
   // check name is okay
   // find free block
@@ -360,3 +385,5 @@ void FS::write_file(char *file_name, byte* input_buffer, int count) {
   // pass it the number of bytes you want to read
 
 // make helper function to bring in fcb based on file name
+  // bool load_in_fcb(char *file_name)
+  // if false then error
