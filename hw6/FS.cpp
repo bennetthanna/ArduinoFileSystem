@@ -11,6 +11,34 @@ FS::FS():eeprom() {
   return;
 }
 
+bool FS::load_in_fcb(char *file_name) {
+  for (int i = 0; i < FILES_IN_DIRECTORY; i++) {
+    if (file_directory[i] != -1) {
+      Serial.println("file_directory[i] != -1");
+      Serial.println(file_directory[i]);
+      eeprom.read_page(file_directory[i], (byte*)fcb);
+      Serial.print("loaded in fcb file name = ");
+      Serial.println(fcb->file_name);
+      Serial.print("loaded in fcb file offset = ");
+      Serial.println(fcb->file_offset);
+      Serial.print("loaded in fcb block number = ");
+      Serial.println(fcb->block_number);
+      Serial.print("loaded in fcb file directory index = ");
+      Serial.println(fcb->file_directory_index);
+      for (int j = 0; j < 16; j++) {
+        Serial.print("data_blocks[");
+        Serial.print(j);
+        Serial.print("] = ");
+        Serial.println(fcb->data_blocks[j]);
+      }
+      if (strcmp(fcb->file_name, file_name) == 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 void FS::print_free_list() {
   for (int i = 0; i < FREE_LIST_SIZE; ++i) {
     Serial.print("free space list[");
@@ -109,24 +137,33 @@ int FS::find_empty_directory_slot() {
   }
 }
 
+void FS::reset_fcb() {
+  fcb->file_name[0] = 0;
+  fcb->file_offset = -1;
+  for (int i = 0; i < 16; ++i) {
+    fcb->data_blocks[i] = -1;
+  }
+  fcb->block_number = -1;
+  fcb->file_directory_index = -1;
+}
+
 void FS::create_file(char *file_name) {
+//  reset_fcb();
   num_free_blocks = find_num_free_blocks();
-  Serial.println("here before num free blocks");
   if (num_free_blocks < 1) {
     Serial.println("ERROR: No free blocks available");
     return;
   }
-  Serial.println("here before num files");
   if (num_files > 31) {
     Serial.println("ERROR: No more files can be added");
     return;
   }
-  Serial.println("here before find file");
   if (load_in_fcb(file_name)) {
     Serial.println("ERROR: File already exists");
     return;
   }
-  Serial.println("here after");
+  Serial.print("Creating file: ");
+  Serial.println(file_name);
   // find first free block
   int block_number = find_first_free_block();
   fcb->block_number = block_number;
@@ -137,57 +174,20 @@ void FS::create_file(char *file_name) {
   flip_bit(block_index, block_offset);
   int file_directory_slot = find_empty_directory_slot();
   fcb->file_directory_index = file_directory_slot;
+  Serial.println(fcb->file_directory_index);
   // update file directory to show a file is occupying the slot
   file_directory[file_directory_slot] = block_number;
   strcpy(fcb->file_name, file_name);
+  Serial.println(fcb->file_name);
   fcb->file_offset = 0;
+  Serial.println(fcb->file_offset);
   for (int i = 0; i < 16; ++i) {
     fcb->data_blocks[i] = -1;
-  }
-  Serial.print("created fcb file name = ");
-  Serial.println(fcb->file_name);
-  Serial.print("created fcb file offset = ");
-  Serial.println(fcb->file_offset);
-  Serial.print("created fcb block number = ");
-  Serial.println(fcb->block_number);
-  Serial.print("created fcb file directory index = ");
-  Serial.println(fcb->file_directory_index);
-  for (int j = 0; j < 16; ++j) {
-    Serial.print("created data_blocks[");
-    Serial.print(j);
-    Serial.print("] = ");
-    Serial.println(fcb->data_blocks[j]);
   }
   eeprom.write_page(block_number, (byte*)fcb);
   commit_to_EEPROM();
   num_files++;
   return;
-}
-
-bool FS::load_in_fcb(char *file_name) {
-  for (int i = 0; i < FILES_IN_DIRECTORY; ++i) {
-    if (file_directory[i] != -1) {
-      eeprom.read_page(file_directory[i], (byte*)fcb);
-      if (strcmp(fcb->file_name, file_name) == 0) {
-        Serial.print("loaded in fcb file name = ");
-        Serial.println(fcb->file_name);
-        Serial.print("loaded in fcb file offset = ");
-        Serial.println(fcb->file_offset);
-        Serial.print("loaded in fcb block number = ");
-        Serial.println(fcb->block_number);
-        Serial.print("loaded in fcb file directory index = ");
-        Serial.println(fcb->file_directory_index);
-        for (int j = 0; j < 16; ++j) {
-          Serial.print("data_blocks[");
-          Serial.print(j);
-          Serial.print("] = ");
-          Serial.println(fcb->data_blocks[j]);
-        }
-        return true;
-      }
-    }
-  }
-  return false;
 }
 
 void FS::list_files() {
@@ -208,7 +208,8 @@ void FS::list_files() {
 
 void FS::delete_file(char *file_name) {
   if (load_in_fcb(file_name)) {
-    Serial.println("File found");
+    Serial.print("Deleting file: ");
+    Serial.println(file_name);
     int block_number = fcb->block_number;
     int block_index = block_number / 8;
     int block_offset = block_number % 8;
@@ -216,8 +217,6 @@ void FS::delete_file(char *file_name) {
     file_directory[fcb->file_directory_index] = -1;
     num_files--;
     fcb->file_name[0] = 0;
-    Serial.print("Reset file name = ");
-    Serial.println(fcb->file_name);
     fcb->file_offset = 0;
     for (int i = 0; i < 16; ++i) {
       fcb->data_blocks[i] = -1;
@@ -233,46 +232,47 @@ void FS::delete_file(char *file_name) {
 }
 
 void FS::open_file(char *file_name) {
-  if (load_in_fcb(file_name)) {
-    Serial.println("File opened");
-    return;
-  } else {
-    Serial.print("ERROR: File ");
-    Serial.print(file_name);
-    Serial.println(" not found");
-    return;
+  for (int i = 0; i < FILES_IN_DIRECTORY; i++) {
+    if (file_directory[i] != -1) {
+      if (strcmp(fcb->file_name, file_name) == 0) {
+        Serial.println("File opened");
+        return;
+      }
+    }
   }
+  Serial.print("ERROR: File ");
+  Serial.print(file_name);
+  Serial.println(" not found");
+  return;
 }
 
 void FS::close_file() {
+  reset_fcb();
   eeprom.write_page(fcb->block_number, (byte*)fcb);
   commit_to_EEPROM();
 }
 
-void FS::seek_file(char *file_name) {
-  if (load_in_fcb(file_name)) {
-    Serial.println("File found");
+void FS::seek_file() {
+  if (fcb->file_name[0] != 0) {
+    Serial.println("Seeking to beginning of file");
     fcb->file_offset = 0;
-    return;
+    eeprom.write_page(fcb->block_number, (byte*)fcb);
+    Serial.println(fcb->file_offset);
   } else {
-    Serial.print("ERROR: File ");
-    Serial.print(file_name);
-    Serial.println(" not found");
-    return;
+    Serial.println("ERROR: no file is currently open to seek");
   }
 }
 
-void FS::write_file(char *file_name, byte* input_buffer, int count) {
+// writes to current file that is open in fcb
+void FS::write_file(byte* input_buffer, int count) {
   Serial.println("Inside write file");
-  byte buffer[64];
-  buffer[0] = 0;
+  buff[0] = 0;
   if (count > 1024) {
     Serial.println("ERROR: Files can be no larger than 1024 bytes");
     return;
   }
   Serial.println("here");
-  if (load_in_fcb(file_name)) {
-    Serial.println("File found");
+  if (fcb->file_name[0] != 0) {
     if ((fcb->file_offset + count) > 1024) {
       Serial.println("ERROR: Files can be no larger than 1024 bytes");
       return;
@@ -283,7 +283,7 @@ void FS::write_file(char *file_name, byte* input_buffer, int count) {
     if (fcb->data_blocks[data_block_num] != -1) {
       Serial.println("fcb->data_blocks != -1");
       Serial.println(fcb->data_blocks[data_block_num]);
-      eeprom.read_page(fcb->data_blocks[data_block_num], (byte*)buffer);
+      eeprom.read_page(fcb->data_blocks[data_block_num], (byte*)buff);
     } else {
       int block_num = find_first_free_block();
       Serial.print("block num = ");
@@ -296,44 +296,38 @@ void FS::write_file(char *file_name, byte* input_buffer, int count) {
       flip_bit((block_num / 8) , (block_num % 8));
       Serial.println("here");
     }
-    strncat((char*)buffer, (char*)input_buffer, count);
+    strncat((char*)buff, (char*)input_buffer, count);
     Serial.println("after strncat");
     Serial.println(fcb->file_offset);
     fcb->file_offset += count;
     Serial.print("file offset = ");
     Serial.println(fcb->file_offset);
     Serial.print("buffer = ");
-    Serial.println((char*)buffer);
+    Serial.println((char*)buff);
     Serial.print("input buffer = ");
     Serial.println((char*)input_buffer);
-    eeprom.write_page(fcb->data_blocks[data_block_num], (byte*)buffer);
+    eeprom.write_page(fcb->data_blocks[data_block_num], (byte*)buff);
     eeprom.write_page(fcb->block_number, (byte*)fcb);
     commit_to_EEPROM();
   } else {
-    Serial.print("ERROR: File ");
-    Serial.print(file_name);
-    Serial.println(" not found");
+    Serial.println("ERROR: no file is currently open to write to");
     return;
   }
 }
 
-void FS::read_file(char *file_name) {
+// reads the whole file of the current file in the fcb
+void FS::read_file() {
   byte heres_another_buffer[64];
   heres_another_buffer[0] = 0;
-  if (load_in_fcb(file_name)) {
-    Serial.println("File found");
+  if (fcb->file_name[0] != 0) {
     for (int i = 0; i < 16; ++i) {
       if (fcb->data_blocks[i] != -1) {
-        Serial.println("data block != -1");
         eeprom.read_page(fcb->data_blocks[i], (byte*)heres_another_buffer);
         Serial.println((char*)heres_another_buffer);
       }
     }
-    return;
   } else {
-    Serial.print("ERROR: File ");
-    Serial.print(file_name);
-    Serial.println(" not found");
+    Serial.print("ERROR: no file currently open to read");
     return;
   }
 }

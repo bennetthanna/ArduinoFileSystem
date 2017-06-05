@@ -14,8 +14,7 @@ class FS {
     // 64 bytes per block of memory, 8 bits per byte
     // 512 bits per block of memory = 1 bit per block
     byte free_space_list[FREE_LIST_SIZE];
-    // 32 pointers to file control blocks
-    // each pointer = 2 bytes
+    // 32 integers representing the file control blocks
     int file_directory[FILES_IN_DIRECTORY];
     Microchip_24LC256 eeprom;
     int num_free_blocks;
@@ -24,6 +23,7 @@ class FS {
 
 //  public:
     FS();
+    byte buff[64];
     // clear free space list and file directory
     void reformat();
     // bring free space list and file directory into memory
@@ -33,11 +33,11 @@ class FS {
     // open a named file
     void open_file(char *file_name);
     // write bytes to a file
-    void write_file(char *file_name, byte* input_buffer, int count);
+    void write_file(byte* input_buffer, int count);
     // read bytes from a file
-    void read_file(char *file_name);
+    void read_file();
     // seek to beginning of a file
-    void seek_file(char *file_name);
+    void seek_file();
     // close a file
     void close_file();
     // delete a named file
@@ -54,4 +54,5 @@ class FS {
     void print_free_list();
     void print_file_directory();
     int find_empty_directory_slot();
+    void reset_fcb();
 };
