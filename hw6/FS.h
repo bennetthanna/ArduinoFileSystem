@@ -18,12 +18,11 @@ class FS {
     int file_directory[FILES_IN_DIRECTORY];
     Microchip_24LC256 eeprom;
     int num_free_blocks;
-    FCB *fcb;
+    FCB fcb;
     int num_files;
 
 //  public:
     FS();
-    byte buff[64];
     // clear free space list and file directory
     void reformat();
     // bring free space list and file directory into memory
@@ -50,7 +49,6 @@ class FS {
     // call this function with find_free_block_offset?
     void flip_bit(int block_index, int offset);
     void commit_to_EEPROM();
-    bool load_in_fcb(char *file_name);
     void print_free_list();
     void print_file_directory();
     int find_empty_directory_slot();
