@@ -7,8 +7,7 @@
 #define BLOCK_SIZE 64
 
 class FS {
-//  private:
-  public:
+  private:
     // 1 bit for each block of EEPROM memory
     // 512 blocks of memory
     // 64 bytes per block of memory, 8 bits per byte
@@ -21,7 +20,7 @@ class FS {
     FCB fcb;
     int num_files;
 
-//  public:
+  public:
     FS();
     // clear free space list and file directory
     void reformat();

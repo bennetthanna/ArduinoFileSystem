@@ -86,7 +86,6 @@ int FS::find_num_free_blocks() {
       j = j << 1;
     }
   }
-  //num_free_blocks = counter;
   return counter;
 }
 
@@ -121,7 +120,6 @@ void FS::reset_fcb() {
 }
 
 void FS::create_file(char *file_name) {
-//  reset_fcb();
   num_free_blocks = find_num_free_blocks();
   if (num_free_blocks < 1) {
     Serial.println("ERROR: No free blocks available");
@@ -260,22 +258,14 @@ void FS::write_file(byte* input_buffer, int count) {
     }
     num_overflows = ((fcb.file_offset % 64) + count) / 64;
     int data_block_num = fcb.file_offset / 64;
-//    Serial.print("data block num = ");
-//    Serial.println(data_block_num);
     if (fcb.data_blocks[data_block_num] != -1) {
-//      Serial.println("fcb.data_blocks != -1");
-//      Serial.println(fcb.data_blocks[data_block_num]);
       memset(buff, 0, 64);
       eeprom.read_page(fcb.data_blocks[data_block_num], (byte*)buff);
     } else {
       memset(buff, 0, 64);
       int block_num = find_first_free_block();
-//      Serial.print("block num = ");
-//      Serial.println(block_num);
       fcb.data_blocks[data_block_num] = block_num;
       int index = find_empty_directory_slot();
-//      Serial.print("index = ");
-//      Serial.println(index);
       file_directory[index] = block_num;
       flip_bit((block_num / 8) , (block_num % 8));
     }
@@ -296,22 +286,14 @@ void FS::write_file(byte* input_buffer, int count) {
         num_overflows--;
         // grab next data block
         data_block_num++;
-//        Serial.print("data block num = ");
-//        Serial.println(data_block_num);
         if (fcb.data_blocks[data_block_num] != -1) {
-//          Serial.println("fcb.data_blocks != -1");
-//          Serial.println(fcb.data_blocks[data_block_num]);
           memset(buff, 0, 64);
           eeprom.read_page(fcb.data_blocks[data_block_num], (byte*)buff);
         } else {
           memset(buff, 0, 64);
           int block_num = find_first_free_block();
-//          Serial.print("block num = ");
-//          Serial.println(block_num);
           fcb.data_blocks[data_block_num] = block_num;
           int index = find_empty_directory_slot();
-//          Serial.print("index = ");
-//          Serial.println(index);
           file_directory[index] = block_num;
           flip_bit((block_num / 8) , (block_num % 8));
         }
@@ -322,13 +304,7 @@ void FS::write_file(byte* input_buffer, int count) {
         num_chars_written += 64;
       } 
     }
-//    Serial.print("buffer = ");
-//    Serial.println((char*)buff);
-//    Serial.print("input buffer = ");
-//    Serial.println((char*)input_buffer);
     fcb.file_offset += count;
-//    Serial.print("file offset = ");
-//    Serial.println(fcb.file_offset);
     eeprom.write_page(fcb.data_blocks[data_block_num], (byte*)buff);
     eeprom.write_page(fcb.block_number, (byte*)&fcb);
     commit_to_EEPROM();
@@ -349,7 +325,9 @@ void FS::read_file() {
         Serial.println((char*)buffy);
       }
     }
+    return;
   } else {
     Serial.println("ERROR: no file currently open to read");
+    return;
   }
 }
