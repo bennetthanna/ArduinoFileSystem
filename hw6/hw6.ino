@@ -8,173 +8,63 @@ void setup()
   Serial.flush();
   FS file_system;
   file_system.reformat();
-  // create 32 files and list files
-  file_system.create_file("test_00.txt");
-  file_system.create_file("test_01.txt");
-  file_system.create_file("test_02.txt");
-  file_system.create_file("test_03.txt");
-  file_system.create_file("test_04.txt");
-  file_system.create_file("test_05.txt");
-  file_system.create_file("test_06.txt");
-  file_system.create_file("test_07.txt");
-  file_system.create_file("test_08.txt");
-  file_system.create_file("test_09.txt");
-  file_system.create_file("test_10.txt");
-  file_system.create_file("test_11.txt");
-  file_system.create_file("test_12.txt");
-  file_system.create_file("test_13.txt");
-  file_system.create_file("test_14.txt");
-  file_system.create_file("test_15.txt");
-  file_system.create_file("test_16.txt");
-  file_system.create_file("test_17.txt");
-  file_system.create_file("test_18.txt");
-  file_system.create_file("test_19.txt");
-  file_system.create_file("test_20.txt");
-  file_system.create_file("test_21.txt");
-  file_system.create_file("test_22.txt");
-  file_system.create_file("test_23.txt");
-  file_system.create_file("test_24.txt");
-  file_system.create_file("test_25.txt");
-  file_system.create_file("test_26.txt");
-  file_system.create_file("test_27.txt");
-  file_system.create_file("test_28.txt");
-  file_system.create_file("test_29.txt");
-  file_system.create_file("test_30.txt");
-  file_system.create_file("test_31.txt");
-  // try to create 33rd file
-  file_system.create_file("uh_oh_spaghettio.txt");
-  // try to create file with duplicate name
-  file_system.create_file("test_00.txt");
+  
+  char filename[26];
+  // cretae 5 files and list
+  for (int i = 0; i < 5; ++i) {
+    sprintf(filename, "test_%02i.txt", i);
+    file_system.create_file(filename);
+  }
+  memset(filename, 0, 26);
+
+  // delete 3 files and list
+  file_system.delete_file("test_00.txt");
+  file_system.delete_file("test_01.txt");
+  file_system.delete_file("test_02.txt");
   file_system.list_files();
-  file_system.open_file("test_00.txt");
-  file_system.write_file("Hello CS444, this is file 00!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_01.txt");
-  file_system.write_file("Hello CS444, this is file 01!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_02.txt");
-  file_system.write_file("Hello CS444, this is file 02!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
+
+  // write 256 bytes to file and read
   file_system.open_file("test_03.txt");
-  file_system.write_file("Hello CS444, this is file 03!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
+  file_system.write_file("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuv", 256);
+  file_system.read_file();
+
+  // create a file that exists
+  file_system.create_file("test_03.txt");
+
+  // open a file that does not exists
+  file_system.open_file("uh_oh_spaghettio.txt");
+
+  // delete a file that does not exist
+  file_system.open_file("aint_nothin_here.txt");
+
+  // write more than 1024 bytes to a file
   file_system.open_file("test_04.txt");
-  file_system.write_file("Hello CS444, this is file 04!!!", 34);
-  // file_system.read_file();
+  for (int i = 0; i < 16; ++i) {
+    file_system.write_file("Here are 64 bytes. Stupid filler text. Pay no attention to this.", 64);
+  }
+  file_system.write_file("Ooopsies file overload oh no waz gonna happen?!", 47);
+  file_system.read_file();
   file_system.close_file();
-  file_system.open_file("test_05.txt");
-  file_system.write_file("Hello CS444, this is file 05!!!", 34);
-  // file_system.read_file();
+
+  // list files to show size change
+  file_system.list_files();
+
+  // seek to beginning of file and list to show it won't change file size
+  file_system.open_file("test_04.txt");
+  file_system.seek_file();
   file_system.close_file();
-  file_system.open_file("test_06.txt");
-  file_system.write_file("Hello CS444, this is file 06!!!", 34);
-  // file_system.read_file();
+  file_system.list_files();
+  file_system.open_file("test_04.txt");
+  file_system.write_file("I'm overwriting my filler text. Vroom vroom motherfucker. ", 58);
+  file_system.read_file();
   file_system.close_file();
-  file_system.open_file("test_07.txt");
-  file_system.write_file("Hello CS444, this is file 07!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_08.txt");
-  file_system.write_file("Hello CS444, this is file 08!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_09.txt");
-  file_system.write_file("Hello CS444, this is file 09!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_10.txt");
-  file_system.write_file("Hello CS444, this is file 10!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_11.txt");
-  file_system.write_file("Hello CS444, this is file 11!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_12.txt");
-  file_system.write_file("Hello CS444, this is file 12!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_13.txt");
-  file_system.write_file("Hello CS444, this is file 13!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_14.txt");
-  file_system.write_file("Hello CS444, this is file 14!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_15.txt");
-  file_system.write_file("Hello CS444, this is file 15!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_16.txt");
-  file_system.write_file("Hello CS444, this is file 16!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_17.txt");
-  file_system.write_file("Hello CS444, this is file 17!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_18.txt");
-  file_system.write_file("Hello CS444, this is file 18!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_19.txt");
-  file_system.write_file("Hello CS444, this is file 19!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_20.txt");
-  file_system.write_file("Hello CS444, this is file 20!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_21.txt");
-  file_system.write_file("Hello CS444, this is file 21!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_22.txt");
-  file_system.write_file("Hello CS444, this is file 22!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_23.txt");
-  file_system.write_file("Hello CS444, this is file 23!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_24.txt");
-  file_system.write_file("Hello CS444, this is file 24!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_25.txt");
-  file_system.write_file("Hello CS444, this is file 25!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_26.txt");
-  file_system.write_file("Hello CS444, this is file 26!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_27.txt");
-  file_system.write_file("Hello CS444, this is file 27!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_28.txt");
-  file_system.write_file("Hello CS444, this is file 28!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_29.txt");
-  file_system.write_file("Hello CS444, this is file 29!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_30.txt");
-  file_system.write_file("Hello CS444, this is file 30!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  file_system.open_file("test_31.txt");
-  file_system.write_file("Hello CS444, this is file 31!!!", 34);
-  // file_system.read_file();
-  file_system.close_file();
-  Serial.println("DONE");
+
+  // try to read, seek, and write when no file is open
+  file_system.write_file("Knock knock. No one's home.", 27);
+  file_system.seek_file();
+  file_system.read_file();
+  
+  Serial.println(F("DONE"));
 }
 
 void loop() {
