@@ -7,10 +7,13 @@
 
 class FS {
   private:
+    // free list of 64 bytes = 512 bits = 1 bit per block
     byte free_space_list[64];
+    // max 32 files
     int file_directory[32];
     Microchip_24LC256 eeprom;
     int num_free_blocks;
+    // one instance of fcb
     FCB fcb;
     int num_files;
 

@@ -1,14 +1,10 @@
 #include "FS.h"
 
-// write to eeprom every time you create or delete a file
-
 // 0 is file directory
 // 1 is free space list
 
 FS::FS():eeprom() {
   Serial.println(F("Inside constructor!"));
-  num_files = 0;
-  return;
 }
 
 void FS::print_free_list() {
@@ -18,7 +14,6 @@ void FS::print_free_list() {
     Serial.print(F("] = "));
     Serial.println(free_space_list[i], BIN);
   }
-  return;
 }
 
 void FS::print_file_directory() {
@@ -28,7 +23,6 @@ void FS::print_file_directory() {
     Serial.print(F("] = "));
     Serial.println(file_directory[i]);
   }
-  return;
 }
 
 void FS::reformat() {
@@ -40,9 +34,10 @@ void FS::reformat() {
     free_space_list[i] = 255;
   }
   for (int i = 0; i < 32; ++i) {
-    // initialize directory pointers to NULL
+    // initialize directory pointers to -1
     file_directory[i] = -1;
   }
+  num_files = 0;
 //  for (int i = 0; i < 512; ++i) {
 //    Serial.println(i);
 //    byte clear_buffer[64];
@@ -61,8 +56,8 @@ void FS::initialize() {
   return;
 }
 
+// returns the offset of the first block that is free
 int FS::find_first_free_block() {
-  // returns the offset of the first block that is free
   int offset = 0;
   for (int i = 0; i < 64; ++i) {
     int comparator = 128;
@@ -75,12 +70,11 @@ int FS::find_first_free_block() {
       }
     }
   }
-  // should error check for -1 return value - signals no free blocks
   return -1;
 }
 
+//returns the total number of free blocks (total number of one's in bit string)
 int FS::find_num_free_blocks() {
-  //returns the total number of free blocks (total number of one's in bit string)
   int counter = 0;
   for (int i = 0; i < 64; ++i) {
     int j = 1;
@@ -94,18 +88,21 @@ int FS::find_num_free_blocks() {
   return counter;
 }
 
+// flips the specified bit
 void FS::flip_bit(int block_index, int offset) {
   int x = 128;
   free_space_list[block_index] = ((x >> offset) ^ free_space_list[block_index]);
   return;
 }
 
+// write the file directory and free space list to desired blocks on EEPROM
 void FS::commit_to_EEPROM() {
   eeprom.write_page(0, (byte*)file_directory);
   eeprom.write_page(1, free_space_list);
   return;
 }
 
+// returns the next free file directory slot
 int FS::find_empty_directory_slot() {
   for (int i = 0; i < 32; ++i) {
     if (file_directory[i] == -1) {
@@ -114,6 +111,7 @@ int FS::find_empty_directory_slot() {
   }
 }
 
+// reset fcb elements
 void FS::reset_fcb() {
   fcb.file_name[0] = 0;
   fcb.file_offset = -1;
@@ -124,6 +122,10 @@ void FS::reset_fcb() {
   fcb.file_directory_index = -1;
 }
 
+// checks for available free blocks
+// error checks file name
+// finds the first fre block and changes the free list and directory accordingly
+// updtaes the fcb and writes changes to eeprom
 void FS::create_file(char *file_name) {
   num_free_blocks = find_num_free_blocks();
   for (int i = 0; i < 32; i++) {
@@ -145,14 +147,11 @@ void FS::create_file(char *file_name) {
   }
   Serial.print(F("Creating file: "));
   Serial.println(file_name);
-  // find first free block
   int block_number = find_first_free_block();
   fcb.block_number = block_number;
-  // update the free space list by flipping that bit to occupied
   flip_bit((block_number / 8), (block_number % 8));
   int file_directory_slot = find_empty_directory_slot();
   fcb.file_directory_index = file_directory_slot;
-  // update file directory to show a file is occupying the slot
   file_directory[file_directory_slot] = block_number;
   strcpy(fcb.file_name, file_name);
   fcb.file_offset = 0;
@@ -165,6 +164,9 @@ void FS::create_file(char *file_name) {
   return;
 }
 
+// lists all files in the directory
+// prints out file size up to the next page boundary
+  // example: if 23 bytes then puts 64 byte size
 void FS::list_files() {
   Serial.println(F("Listing files..."));
   for (int i = 0; i < 32; ++i) {
@@ -186,6 +188,10 @@ void FS::list_files() {
   return;
 }
 
+// error checks to make sure file exists
+// updates the directory and free list according to where the file used to occupy
+// clears the fcb
+// commits the changes to EEPROM
 void FS::delete_file(char *file_name) {
   for (int i = 0; i < 32; i++) {
     if (file_directory[i] != -1) {
@@ -197,11 +203,12 @@ void FS::delete_file(char *file_name) {
         flip_bit((block_number / 8), (block_number % 8));
         file_directory[fcb.file_directory_index] = -1;
         num_files--;
-        fcb.file_name[0] = 0;
-        fcb.file_offset = -1;
-        for (int i = 0; i < 16; ++i) {
-          fcb.data_blocks[i] = -1;
-        }
+//        fcb.file_name[0] = 0;
+//        fcb.file_offset = -1;
+//        for (int i = 0; i < 16; ++i) {
+//          fcb.data_blocks[i] = -1;
+//        }
+        reset_fcb();
         commit_to_EEPROM();
         return;
       }
@@ -212,6 +219,8 @@ void FS::delete_file(char *file_name) {
   Serial.println(F(" not found"));
 }
 
+// error cecks the existence of the file
+// brings the specified file into the fcb
 void FS::open_file(char *file_name) {
   for (int i = 0; i < 32; i++) {
     if (file_directory[i] != -1) {
@@ -227,6 +236,8 @@ void FS::open_file(char *file_name) {
   Serial.println(F(" not found"));
 }
 
+// error checks for open file
+// resets the fcb and commits to EEPROM
 void FS::close_file() {
   if (fcb.file_offset != -1) {
     Serial.println(F("Closing file..."));
@@ -238,6 +249,8 @@ void FS::close_file() {
   }
 }
 
+// error checks for open file
+// sets file offset to 0 of whichever file is currently open
 void FS::seek_file() {
   if (fcb.file_offset != -1) {
     Serial.println(F("Seeking to beginning of file..."));
@@ -248,6 +261,10 @@ void FS::seek_file() {
   }
 }
 
+// error checks for open file
+// writes count number of bytes to file that is currently open
+// updates fcb data blocks, free list, and file offset
+// commits changes to EEPROM
 void FS::write_file(byte* input_buffer, int count) {
   Serial.println(F("Writing to file..."));
   byte buff[64];
@@ -312,7 +329,8 @@ void FS::write_file(byte* input_buffer, int count) {
   }
 }
 
-// reads the whole file of the current file in the fcb
+// error checks for open file
+// reads the whole file of the current open file in the fcb
 void FS::read_file() {
   byte buffy[64];
   if (fcb.file_name[0] != 0) {

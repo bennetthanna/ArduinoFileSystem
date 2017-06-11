@@ -31,7 +31,7 @@ void setup()
   // create a file that exists
   file_system.create_file("test_03.txt");
 
-  // open a file that does not exists
+  // open a file that does not exist
   file_system.open_file("uh_oh_spaghettio.txt");
 
   // delete a file that does not exist
@@ -68,6 +68,5 @@ void setup()
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
 
 }
